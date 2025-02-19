@@ -35,14 +35,15 @@ def predict_hazard(input_data, objects):
     # Scale the input data
     scaled_data = objects['scaler'].transform(input_data)
     
-    # Get prediction and probability
+    # Get prediction, probability, and decision score
     prediction = objects['model'].predict(scaled_data)
     probability = objects['model'].predict_proba(scaled_data)
-    
+    decision_score = objects['model'].decision_function(scaled_data)  # Get decision score
+
     # Convert prediction to original label
     prediction_label = objects['label_encoder_hazardous'].inverse_transform(prediction)
     
-    return prediction_label[0], probability[0]
+    return prediction_label[0], probability[0], decision_score[0]  # Return decision score
 
 def main():
     # Title and introduction
@@ -79,18 +80,18 @@ def main():
             st.subheader("Prediction")
             if st.button("Predict Hazard Status"):
                 # Make prediction
-                prediction, probability = predict_hazard(input_df, objects)
-                
+                prediction, probability, decision_score = predict_hazard(input_df, objects)
+
                 # Calculate confidence
                 confidence = max(probability) * 100
                 
                 # Create gauge chart for confidence
                 fig = go.Figure(go.Indicator(
-                    mode = "gauge+number",
-                    value = confidence,
-                    domain = {'x': [0, 1], 'y': [0, 1]},
-                    title = {'text': "Confidence Score"},
-                    gauge = {
+                    mode="gauge+number",
+                    value=confidence,
+                    domain={'x': [0, 1], 'y': [0, 1]},
+                    title={'text': "Confidence Score"},
+                    gauge={
                         'axis': {'range': [0, 100]},
                         'bar': {'color': "darkblue"},
                         'steps': [
@@ -107,7 +108,10 @@ def main():
                 ))
                 
                 st.plotly_chart(fig)
-                
+
+                # Display Decision Score Below Gauge Chart
+                st.markdown(f"### Decision Score: `{decision_score:.4f}`")
+
                 # Display prediction with appropriate styling
                 if prediction:
                     st.error(f"⚠️ Prediction: POTENTIALLY HAZARDOUS")
@@ -136,9 +140,8 @@ def main():
             3. The system will display:
                 - The predicted hazard status
                 - A confidence score
+                - Decision score
                 - Probability distribution for both classes
-                
-            
             """)
         
         # Add feature importance information
